@@ -146,7 +146,7 @@ jobs:
     - name: Build and Push action Data_Base
       uses: docker/build-push-action@v6
       with:
-        context: ./k8s-course-lab-main
+        context: ./k8s-course-lab-main/UI
         file: ./k8s-course-lab-main/UI/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/ui:${{github.run_id}}
@@ -154,7 +154,7 @@ jobs:
     - name: Build and Push action Authentication
       uses: docker/build-push-action@v6
       with:
-        context: ./k8s-course-lab-main
+        context: ./k8s-course-lab-main/auth
         file: ./k8s-course-lab-main/auth/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth:${{github.run_id}}
@@ -165,7 +165,7 @@ jobs:
     - name: Build and Push action weather
       uses: docker/build-push-action@v6
       with:
-        context: ./k8s-course-lab-main
+        context: ./k8s-course-lab-main/weather
         file: ./k8s-course-lab-main/weather/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/weather:${{github.run_id}}
