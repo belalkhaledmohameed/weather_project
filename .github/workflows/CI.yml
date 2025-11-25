@@ -70,7 +70,7 @@ jobs:
       # 5️⃣ Validate against JSON Schema (اختياري)
       - name: Validate JSON against schema
         run: |
-          ajv validate -s schemas/schema.json -d data/**/*.json
+           ajv validate -s schemas/config.schema.json -d "data/**/*.json"
 
 
     
