@@ -85,7 +85,10 @@ jobs:
       - name: Run Flake8
         run:  |
          flake8 ./weather
-         exit 1
+         if [ $? -ne 0 ]; then
+          echo "Flake8 found issues!"
+          exit 1
+         fi
         
 
       # 5️⃣ Run Code Formatter Check (Black)
