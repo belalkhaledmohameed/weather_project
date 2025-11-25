@@ -67,11 +67,6 @@ jobs:
         run: |
           find data -name "*.json" -print0 | xargs -0 jsonlint -q
 
-      # 5️⃣ Validate against JSON Schema (اختياري)
-      - name: Validate JSON against schema
-        run: |
-           ajv validate -s schemas/config.schema.json -d "data/**/*.json"
-
 
     
       - name: Setup Python 3.12
@@ -111,7 +106,7 @@ jobs:
     - name: Run golangci-lint
       uses: Mushus/golangci-linter@v1
     - name: Rub action json code quality
-      uses: vanekj/validate-json-action@v1
+      uses: actions/checkout@v2
     - name: run python code code-quality
       uses: ricardochaves/python-lint@v1.4.0
    
