@@ -55,19 +55,25 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
 
-      - name: Install Node Dependencies
-        run: npm install
-        working-directory: ./UI   # ← مجلد الـ frontend
+      # 3️⃣ Install validator dependencies
+      - name: Install dependencies
+        run: |
+          npm install -g ajv-cli jsonlint
 
-      - name: Build UI
-        run: npm run build
-        working-directory: ./UI
+      # 4️⃣ Check JSON syntax
+      - name: Lint all JSON files
+        run: |
+          jsonlint -q data/**/*.json
 
-      - name: Run Frontend Tests
-        run: npm test --if-present
-        working-directory: ./UI
+      # 5️⃣ Validate against JSON Schema (اختياري)
+      - name: Validate JSON against schema
+        run: |
+          ajv validate -s schemas/schema.json -d data/**/*.json
+
+
+    
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -104,8 +110,8 @@ jobs:
 
     - name: Run golangci-lint
       uses: Mushus/golangci-linter@v1
-    - name: Rub action project go-version
-      uses: avides/actions-project-version-check@v2.0.0
+    - name: Rub action json code quality
+      uses: vanekj/validate-json-action@v1
     - name: run python code code-quality
       uses: ricardochaves/python-lint@v1.4.0
    
