@@ -142,8 +142,11 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: List files in auth folder
+      run: ls -l ./k8s-course-lab-main/UI
 
     - name: Build and Push action Data_Base
+      
       uses: docker/build-push-action@v6
       with:
         context: ./k8s-course-lab-main/UI
