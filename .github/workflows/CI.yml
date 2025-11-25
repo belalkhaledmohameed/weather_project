@@ -121,8 +121,7 @@ jobs:
       uses: Mushus/golangci-linter@v1
     - name: Rub action json code quality
       uses: actions/checkout@v2
-    - name: run python code code-quality
-      uses: davidslusser/actions_python_pytest@v1.0.1
+    
    
   push:
     runs-on: ubuntu-latest
