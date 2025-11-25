@@ -68,6 +68,33 @@ jobs:
       - name: Run Frontend Tests
         run: npm test --if-present
         working-directory: ./UI
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 black bandit pytest
+
+      # 4️⃣ Run Linter (Flake8)
+      - name: Run Flake8
+        run: flake8 .
+
+      # 5️⃣ Run Code Formatter Check (Black)
+      - name: Run Black
+        run: black --check .
+
+      # 6️⃣ Run Security Scan (Bandit)
+      - name: Run Bandit
+        run: bandit -r .
+
+      # 7️⃣ Run Unit Tests
+      - name: Run Tests
+        run: pytest
   code-quality:
     runs-on: ubuntu-latest
 
@@ -79,6 +106,8 @@ jobs:
       uses: Mushus/golangci-linter@v1
     - name: Rub action project go-version
       uses: avides/actions-project-version-check@v2.0.0
+    - name: run python code code-quality
+      uses: ricardochaves/python-lint@v1.4.0
    
   push:
     runs-on: ubuntu-latest
@@ -98,10 +127,37 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and Push action
+    - name: Build and Push action Data_Base
       uses: docker/build-push-action@v6
       with:
         context: .
-        file: ./Dockerfile
+        file: ./k8s-course-lab-main/UI/Dockerfile
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/go-web-app:${{github.run_id}}
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/DataBase:${{github.run_id}}
+    
+    - name: Build and Push action Authentication
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./k8s-course-lab-main/auth/Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/Auth:${{github.run_id}}
+    - name: Build and Push action authentication
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./k8s-course-lab-main/auth/Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth:${{github.run_id}}
+    
+      
+     
+    - name: Build and Push action weather
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./k8s-course-lab-main/weather/Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/Weather:${{github.run_id}}
+    
+      
