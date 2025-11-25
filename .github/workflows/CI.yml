@@ -86,10 +86,7 @@ jobs:
         id: lint
         run:  |
          flake8 ./weather
-         if [ $? -ne 0 ]; then
-          echo "Flake8 found issues!"
-          exit 1
-         fi
+         
         
 
       # 5️⃣ Run Code Formatter Check (Black)
