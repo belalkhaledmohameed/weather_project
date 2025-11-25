@@ -85,17 +85,20 @@ jobs:
       - name: Run Flake8
         id: lint
         run:  |
+         set +e
          flake8 ./weather
+         echo "flake_exit=$?" >> $GITHUB_OUTPUT
+         set -e
          
         
 
       # 5️⃣ Run Code Formatter Check (Black)
       - name: Run Black
-        if: failure() && steps.lint.outcome == 'failure'
+        if: steps.lint.outputs.flake_exit != '0'
         run: black  ./weather
         
       - name: Rerun Flake8 after formatting
-        if: always()
+        
         run: flake8 ./weather || true
         
 
