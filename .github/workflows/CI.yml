@@ -83,15 +83,15 @@ jobs:
 
       # 4️⃣ Run Linter (Flake8)
       - name: Run Flake8
-        run: flake8 .
+        run: flake8 ./weather
 
       # 5️⃣ Run Code Formatter Check (Black)
       - name: Run Black
-        run: black --check .
+        run: black --check ./weather
 
       # 6️⃣ Run Security Scan (Bandit)
       - name: Run Bandit
-        run: bandit -r .
+        run: bandit -r ./weather
 
       # 7️⃣ Run Unit Tests
       - name: Run Tests
