@@ -122,7 +122,7 @@ jobs:
     - name: Rub action json code quality
       uses: actions/checkout@v2
     - name: run python code code-quality
-      uses: julianwachholz/flake8-action@v2
+      uses: davidslusser/actions_python_pytest@v1.0.1
    
   push:
     runs-on: ubuntu-latest
