@@ -147,7 +147,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: ./k8s-course-lab-main/UI
-        file: ./k8s-course-lab-main/UI/Dockerfile
+        file: Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/ui:${{github.run_id}}
     
@@ -155,7 +155,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: ./k8s-course-lab-main/auth
-        file: ./k8s-course-lab-main/auth/Dockerfile
+        file: Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth:${{github.run_id}}
     
@@ -166,7 +166,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: ./k8s-course-lab-main/weather
-        file: ./k8s-course-lab-main/weather/Dockerfile
+        file: Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/weather:${{github.run_id}}
     
