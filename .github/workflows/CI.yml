@@ -83,6 +83,7 @@ jobs:
 
       # 4️⃣ Run Linter (Flake8)
       - name: Run Flake8
+        id: flake8
         run:  |
          flake8 ./weather
          if [ $? -ne 0 ]; then
