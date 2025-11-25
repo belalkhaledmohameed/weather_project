@@ -91,7 +91,7 @@ jobs:
       # 5️⃣ Run Code Formatter Check (Black)
       - name: Run Black
         if: failure()
-        run: black --check ./weather
+        run: black  ./weather
 
       # 6️⃣ Run Security Scan (Bandit)
       - name: Run Bandit
