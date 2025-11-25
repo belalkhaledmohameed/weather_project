@@ -65,7 +65,7 @@ jobs:
       # 4️⃣ Check JSON syntax
       - name: Lint all JSON files
         run: |
-          jsonlint -q data/**/*.json
+          find data -name "*.json" -print0 | xargs -0 jsonlint -q
 
       # 5️⃣ Validate against JSON Schema (اختياري)
       - name: Validate JSON against schema
