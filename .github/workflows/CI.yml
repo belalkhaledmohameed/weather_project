@@ -1,0 +1,107 @@
+name: CI
+
+# Exclude the workflow to run on changes to the helm chart
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+     
+      - 'kubernetes/**'
+      - 'README.md'
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:15   # لو MySQL غيّرها لـ mysql:8
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: appdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U user -d appdb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      # Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ----------------------------
+      # 🚀 1. Build & Test Go Backend
+      # ----------------------------
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install Go Dependencies
+        run: go mod download
+        working-directory: ./auth   # ← مجلد الـ backend
+
+      - name: Run Go Tests
+        run: go test ./...
+        working-directory: ./auth
+
+      # ----------------------------
+      # 🎨 2. Build & Test Node.js UI
+      # ----------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node Dependencies
+        run: npm install
+        working-directory: ./UI   # ← مجلد الـ frontend
+
+      - name: Build UI
+        run: npm run build
+        working-directory: ./UI
+
+      - name: Run Frontend Tests
+        run: npm test --if-present
+        working-directory: ./UI
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Run golangci-lint
+      uses: Mushus/golangci-linter@v1
+    - name: Rub action project go-version
+      uses: avides/actions-project-version-check@v2.0.0
+   
+  push:
+    runs-on: ubuntu-latest
+
+    needs: build
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and Push action
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/go-web-app:${{github.run_id}}
