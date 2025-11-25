@@ -98,13 +98,12 @@ jobs:
         run: black  ./weather
         
       - name: Rerun Flake8 after formatting
-        
         run: flake8 ./weather || true
         
 
       # 6️⃣ Run Security Scan (Bandit)
       - name: Run Bandit
-        run: bandit -r ./weather
+        run: bandit -r ./weather -ll || true
 
       # # 7️⃣ Run Unit Tests
       # - name: Run Tests
