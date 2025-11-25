@@ -110,7 +110,7 @@ jobs:
       #   run: pytest
   code-quality:
     runs-on: ubuntu-latest
-    needs: build-test
+    
 
 
     steps:
