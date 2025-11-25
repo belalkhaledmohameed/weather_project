@@ -93,8 +93,12 @@ jobs:
 
       # 5️⃣ Run Code Formatter Check (Black)
       - name: Run Black
-        if: failure()
+        # if: failure ()
+        if: steps.flake8.outcome == 'failure'
         run: black  ./weather
+        
+        
+        
 
       # 6️⃣ Run Security Scan (Bandit)
       - name: Run Bandit
