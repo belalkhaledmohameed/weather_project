@@ -1,0 +1,98 @@
+name: Production
+
+# Exclude the workflow to run on changes to the helm chart
+on:
+  push:
+    branches:
+      - Deploying
+jobs:
+  run-DevOps_Project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Configure kubectl
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: install EKS
+        run: |
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin/
+          eksctl version
+      
+      - name: Check if EKS cluster exists
+        id: check-eks
+        run: |
+          
+            if aws eks describe-cluster --name demo-cluster --region us-east-1; then
+               echo "exists=true" >> $GITHUB_OUTPUT
+               aws eks update-kubeconfig --region us-east-1 --name demo-cluster
+
+            else
+               echo "exists=false" >> $GITHUB_OUTPUT
+               eksctl create cluster --name demo-cluster --region us-east-1 
+            
+          
+             fi
+      
+      - name: list cluster
+        run: aws eks list-clusters
+      - name: create users in db
+        run: |
+          ls -la kubernetes/authentication/mysql
+          cd kubernetes/authentication/mysql
+           kubectl create secret generic mysql-secret \
+             --from-literal=root-password='secure-root-pw' \
+             --from-literal=auth-password='my-secret-pw' \
+             --from-literal=secret-key='xco0sr0fh4e52x03g9mv'
+      - name: deploy db
+        run: |
+          kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
+          kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
+          kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
+      - name: connect on db
+        run: |
+         kubectl apply -f ./kubernetes/authentication/service.yaml 
+         kubectl apply -f ./kubernetes/authentication/deployment.yaml
+      - name: create secret in weather service
+        run: |
+          cd kubernetes/weather
+            kubectl create secret generic weather \
+              --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6
+      - name: deploy weather service
+        run: |
+          kubectl apply -f ./kubernetes/weather/service.yaml
+          kubectl apply -f ./kubernetes/weather/deployment.yaml
+      - name: create certificate in UI service
+        run: |
+          cd kubernetes/ui
+             openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=weatherapp.local/O=weatherapp"
+             kubectl create secret tls weatherapp-ui-tls --cert=tls.crt --key=tls.key
+      - name: deploy UI service
+        run: |
+          
+
+          kubectl apply -f ./kubernetes/ui/service.yaml
+          kubectl apply -f ./kubernetes/ui/deployment.yaml
+          kubectl apply -f ./kubernetes/ui/ingress.yaml
+      - name: Run EKS Cluster
+        run:  |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml
+          kubectl get ing
+      - name: Get Load Balancer DNS name
+        id: get_dns
+        run: |
+          ELB_DNS=$(kubectl get ing go-web-app -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "ELB_DNS=$ELB_DNS" >> $GITHUB_ENV
+          echo "DNS Address: $ELB_DNS"
+      - name: list nodes-ips and ingress-ips
+        run: |
+          kubectl get nodes -o wide
+          kubectl get ing
+          nslookup $ELB_DNS
+          kubectl get svc
+          kubectl get pods
+     
