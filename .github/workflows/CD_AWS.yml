@@ -57,12 +57,13 @@ jobs:
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
       - name: getting pods and svc
         run: |
+          kubectl delete pod mysql-0
           kubectl get pods
           kubectl get svc
           
       - name: waiting pod ready
         run: |
-          kubectl wait --for=condition=ready pod -l app=mysql --timeout=200s
+          kubectl wait --for=condition=ready pod -l app=mysql --timeout=600s
           kubectl get pods
       - name: create data on Data_Base
         run: kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
