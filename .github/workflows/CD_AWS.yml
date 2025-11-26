@@ -43,6 +43,8 @@ jobs:
       - name: create users in db
         run: |
           ls -la kubernetes/authentication/mysql
+          kubectl get secret mysql-secret >/dev/null 2>&1 || \
+          kubectl create -f ./kubernetes/mysql/mysql-secret.yaml
           cd kubernetes/authentication/mysql
            kubectl create secret generic mysql-secret \
              --from-literal=root-password='secure-root-pw' \
