@@ -55,7 +55,8 @@ jobs:
         uses: actions/checkout@v6
       - name: create users in db
         run: |
-          cd ./kubernetes/authentication/mysql
+          ls -la kubernetes/authentication/mysql
+          cd kubernetes/authentication/mysql
            kubectl create secret generic mysql-secret \
              --from-literal=root-password='secure-root-pw' \
              --from-literal=auth-password='my-secret-pw' \
