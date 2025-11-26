@@ -101,4 +101,5 @@ jobs:
           nslookup $ELB_DNS
           kubectl get svc
           kubectl get pods
+          kubectl logs weatherapp-auth-58cb85694f-cxf8b
      
