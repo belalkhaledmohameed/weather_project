@@ -44,11 +44,12 @@ jobs:
         run: |
           ls -la kubernetes/authentication/mysql
           kubectl get secret mysql-secret >/dev/null 2>&1 || { \
-           cd kubernetes/authentication/mysql; \
+           cd kubernetes/authentication/mysql
            kubectl create secret generic mysql-secret \
               --from-literal=root-password='secure-root-pw' \
               --from-literal=auth-password='my-secret-pw' \
-              --from-literal=secret-key='xco0sr0fh4e52x03g9mv' }
+              --from-literal=secret-key='xco0sr0fh4e52x03g9mv' \
+               }
       - name: deploy db
         run: |
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
