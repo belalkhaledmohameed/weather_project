@@ -15,19 +15,14 @@ jobs:
 
     services:
       db:
-        image: postgres:15   # لو MySQL غيّرها لـ mysql:8
+        image: mysql:8
         env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: appdb
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+          MYSQL_DATABASE: appdb
         ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U user -d appdb"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
+          - "3306:3306"
     steps:
       # Checkout
       - name: Checkout repository
