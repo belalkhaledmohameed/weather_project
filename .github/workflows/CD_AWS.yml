@@ -63,7 +63,7 @@ jobs:
           
       - name: waiting pod ready
         run: |
-          kubectl wait --for=condition=ready pod -l app=mysql --timeout=600s
+          kubectl wait --for=condition=ready pod -l app=mysql --timeout=1200s
           kubectl get pods
       - name: create data on Data_Base
         run: kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
