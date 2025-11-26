@@ -44,6 +44,7 @@ jobs:
               hostPort: 443
               protocol: TCP
           EOF
+          kubectl wait --for=condition=Ready nodes --all --timeout=120s
       - name: Install the ingress controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
