@@ -91,7 +91,7 @@ jobs:
       - name: Get Load Balancer DNS name
         id: get_dns
         run: |
-          ELB_DNS=$(kubectl get ing go-web-app -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          ELB_DNS=$(kubectl get ing weatherapp-ui-ingress -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           echo "ELB_DNS=$ELB_DNS" >> $GITHUB_ENV
           echo "DNS Address: $ELB_DNS"
       - name: list nodes-ips and ingress-ips
