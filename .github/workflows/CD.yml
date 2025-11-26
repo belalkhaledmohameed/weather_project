@@ -53,6 +53,8 @@ jobs:
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
       - name: get the cluster created
         run: kind get clusters
+      - name: get machine ip
+        run: ifconfig
   
       - name: create users in db
         run: |
