@@ -73,18 +73,22 @@ jobs:
         run: |
          kubectl apply -f ./kubernetes/authentication/service.yaml 
          kubectl apply -f ./kubernetes/authentication/deployment.yaml
-      - name: create Service weather
+      - name: create secret in weather service
         run: |
           cd kubernetes/weather
             kubectl create secret generic weather \
               --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6
+      - name: deploy weather service
+        run: |
           kubectl apply -f ./kubernetes/weather/service.yaml
           kubectl apply -f ./kubernetes/weather/deployment.yaml
-      - name: create UI service 
+      - name: create certificate in UI service
         run: |
           cd kubernetes/ui
              openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=weatherapp.local/O=weatherapp"
              kubectl create secret tls weatherapp-ui-tls --cert=tls.crt --key=tls.key
+      - name: deploy UI service
+        run: |
           kubectl apply -f ./kubernetes/ui/service.yaml
           kubectl apply -f ./kubernetes/ui/deployment.yaml
           kubectl apply -f ./kubernetes/ui/ingress.yaml
