@@ -52,6 +52,7 @@ jobs:
                }
       - name: deploy db
         run: |
+          kubectl delete pod weatherapp-auth-58cb85694f-cxf8b 
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
