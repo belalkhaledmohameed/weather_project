@@ -52,7 +52,7 @@ jobs:
                }
       - name: deploy db
         run: |
-          kubectl delete pod mysql-0
+          
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
       - name: getting pods and svc
