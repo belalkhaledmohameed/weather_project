@@ -22,6 +22,17 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: root-password
+        - name: MYSQL_USER
+          value: authuser
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: auth-password
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+          
   volumeClaimTemplates:
   - metadata:
       name: mysql-persistent-storage
@@ -30,4 +41,4 @@ spec:
       storageClassName: "standard"
       resources:
         requests:
-          storage: 3Gi
+          storage: 5Gi
