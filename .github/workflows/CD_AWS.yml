@@ -93,7 +93,12 @@ jobs:
       - name: Run EKS Cluster
         run:  |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml
+      - name: waiting ingress controller created
+        run: |
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=ingress-nginx --timeout=180s
           kubectl get ing
+
+
       - name: Get Load Balancer DNS name
         id: get_dns
         run: |
