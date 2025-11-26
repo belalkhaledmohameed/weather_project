@@ -55,11 +55,14 @@ jobs:
           
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
-          kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
+          
       - name: waiting pod ready
-        run: kubectl wait --for=condition=ready pod -l app=mysql --timeout=300s
+        run: |
+          kubectl wait --for=condition=ready pod -l app=mysql --timeout=120s
+          kubectl get pods
       - name: connect on db
         run: |
+         kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
          kubectl apply -f ./kubernetes/authentication/service.yaml 
          kubectl apply -f ./kubernetes/authentication/deployment.yaml
       - name: create secret in weather service
