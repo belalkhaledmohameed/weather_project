@@ -41,8 +41,8 @@ jobs:
               hostPort: 80
               protocol: TCP
             - containerPort: 443
-               hostPort: 443
-               protocol: TCP
+              hostPort: 443
+              protocol: TCP
           EOF
       - name: Install the ingress controller
         run: |
