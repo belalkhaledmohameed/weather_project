@@ -54,7 +54,7 @@ jobs:
       - name: request aws-ebs-csi-driver
         run: eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
       - name:  show pods of ebs-csi-drive 
-        eun: kubectl get pods -n kube-system | findstr ebs
+        run: kubectl get pods -n kube-system | findstr ebs
       
          
 
