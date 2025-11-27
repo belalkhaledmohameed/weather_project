@@ -19,6 +19,7 @@ jobs:
           aws-region: us-east-1
       - name: install EKS
         run: |
+        
           curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
           sudo mv /tmp/eksctl /usr/local/bin/
           eksctl version
@@ -40,6 +41,70 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
+      - name: Get Node IAM Role Correctly (FIXED)
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:eks:cluster-name,Values=demo-cluster" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text | awk '{print $1}')
+
+          echo "Instance ID: $INSTANCE_ID"
+          PROFILE_ARN=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --query "Reservations[].Instances[].IamInstanceProfile.Arn" \
+            --output text)
+          echo "Profile ARN: $PROFILE_ARN"
+          PROFILE_NAME=$(echo $PROFILE_ARN | awk -F'/' '{print $2}')
+
+          echo "Instance Profile Name: $PROFILE_NAME"
+
+  
+          ROLE_NAME=$(aws iam get-instance-profile \
+            --instance-profile-name $PROFILE_NAME \
+            --query "InstanceProfile.Roles[0].RoleName" \
+            --output text)
+          echo "ROLE_NAME=$ROLE_NAME" >> $GITHUB_ENV
+          echo "Detected Role Name: $ROLE_NAME"
+      - name: Attach EBS CSI Policy To Node Role
+        run: |
+          POLICY_ARN=$(aws iam list-policies \
+            --scope Local \
+            --query "Policies[?PolicyName=='AmazonEKS_EBS_CSI_Policy'].Arn" \
+            --output text)
+
+          aws iam attach-role-policy \
+            --role-name $ROLE_NAME \
+            --policy-arn $POLICY_ARN
+
+
+      - name: Install AWS EBS CSI Driver
+        run: |
+          eksctl create addon \
+            --name aws-ebs-csi-driver \
+            --cluster demo-cluster \
+            --region us-east-1 \
+            --force
+
+      - name: Wait for EBS CSI Pods to be Ready
+        run: |
+          kubectl wait --for=condition=Running pod \
+            -l app=ebs-csi-controller \
+            -n kube-system \
+            --timeout=180s
+
+      - name: Verify EBS CSI Status
+        run: kubectl get pods -n kube-system | grep ebs
+
+      # - name: restart addons 
+      #   run: kubectl rollout restart deployment ebs-csi-controller -n kube-system
+      - name: get the ebsi pods
+        run: |
+           
+           kubectl get pods -n kube-system | grep ebs
+      
+         
+
+
       - name: create users in db
         run: |
           ls -la kubernetes/authentication/mysql
@@ -53,29 +118,34 @@ jobs:
       - name: deploy db
         run: |
           
+          kubectl apply -f ./kubernetes/authentication/mysql/ebs.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
+          kubectl get pods -n kube-system | grep ebs
+          
+      - name: waiting for database pod ready 
+        run: kubectl wait --for=condition=ready pod -l app=mysql --timeout=90s
+
       - name: getting pods and svc
         run: |
-          kubectl delete pod mysql-0
+          
           kubectl get pods
           kubectl get svc
           
-     # - name: waiting pod ready
-     #   run: |
-     #     kubectl wait --for=condition=ready pod -l app=mysql --timeout=1200s
-     #     kubectl get pods
+   
       - name: create data on Data_Base
         run: kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
+      - name: create Svc account on database 
+        run: kubectl exec -it mysql-0 -- mysql -u authuser -pmy-secret-pw
+      - name: Check DB with SVC account 
+        run: |
+          SHOW DATABASES;
+          USE weatherapp;
       - name: connect on db
         run: |
          kubectl apply -f ./kubernetes/authentication/service.yaml 
          kubectl apply -f ./kubernetes/authentication/deployment.yaml
-      - name: test DATABASE
-        run: |
-          kubectl exec -it mysql-0 -- mysql -u authuser -pmy-secret-pw
-            SHOW DATABASES;
-            USE weatherapp;
+      
       - name: create secret in weather service
         run: |
           kubectl get secret weather >/dev/null 2>&1 || { \
