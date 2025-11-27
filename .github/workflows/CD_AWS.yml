@@ -40,6 +40,24 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
+      
+      - name: download policy for ebs-csi-driver and attach to IAM 
+        run: |
+          curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
+          aws iam create-policy \
+            --policy-name AmazonEKS_EBS_CSI_Policy \
+            --policy-document file://example-iam-policy.json
+          aws iam attach-role-policy \
+            --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
+            --policy-arn arn:aws:iam::643008340843:policy/AmazonEKS_EBS_CSI_Policy
+      - name: request aws-ebs-csi-driver
+        run: eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
+      - name:  show pods of ebs-csi-drive 
+        eun: kubectl get pods -n kube-system | findstr ebs
+      
+         
+
+
       - name: create users in db
         run: |
           ls -la kubernetes/authentication/mysql
@@ -55,27 +73,30 @@ jobs:
           
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
+          kubectl apply -f ./kubernetes/authentication/mysql/ebs.yaml
+      - name: waiting for database pod ready 
+        run: kubectl wait --for=condition=ready pod -l app=mysql --timeout=90s
+
       - name: getting pods and svc
         run: |
-          kubectl delete pod mysql-0
+          
           kubectl get pods
           kubectl get svc
           
-     # - name: waiting pod ready
-     #   run: |
-     #     kubectl wait --for=condition=ready pod -l app=mysql --timeout=1200s
-     #     kubectl get pods
+   
       - name: create data on Data_Base
         run: kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
+      - name: create Svc account on database 
+        run: kubectl exec -it mysql-0 -- mysql -u authuser -pmy-secret-pw
+      - name: Check DB with SVC account 
+        run: |
+          SHOW DATABASES;
+          USE weatherapp;
       - name: connect on db
         run: |
          kubectl apply -f ./kubernetes/authentication/service.yaml 
          kubectl apply -f ./kubernetes/authentication/deployment.yaml
-      - name: test DATABASE
-        run: |
-          kubectl exec -it mysql-0 -- mysql -u authuser -pmy-secret-pw
-            SHOW DATABASES;
-            USE weatherapp;
+      
       - name: create secret in weather service
         run: |
           kubectl get secret weather >/dev/null 2>&1 || { \
