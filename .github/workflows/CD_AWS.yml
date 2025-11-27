@@ -69,8 +69,19 @@ jobs:
       - name: download aws-ebs-csi-driver 
         run: |
           eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
+      - name: get the addon
+        run: eksctl get addon --cluster demo-cluster --region us-east-1
+      - name: get the pods
+        run: kubectl get pods -n kube-system | grep ebs
+      
+
+      
       - name: waiting pod aws-ebs-csi-driver 
-        run: kubectl wait --for=condition=Ready pod -l app=ebs-csi-controller -n kube-system --timeout=300s
+        run: |
+          kubectl wait --for=condition=Ready pod \
+            -l app.kubernetes.io/name=aws-ebs-csi-driver \
+            -n kube-system --timeout=300s
+
 
 
         
