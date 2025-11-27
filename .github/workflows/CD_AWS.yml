@@ -19,11 +19,10 @@ jobs:
           aws-region: us-east-1
       - name: install EKS
         run: |
-        
           curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
           sudo mv /tmp/eksctl /usr/local/bin/
           eksctl version
-      
+          pwd
       - name: Check if EKS cluster exists
         id: check-eks
         run: |
@@ -41,56 +40,51 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
-      - name: Get Node IAM Role Correctly (FIXED)
+      - name: download policy 
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:eks:cluster-name,Values=demo-cluster" \
-            --query "Reservations[].Instances[].InstanceId" \
-            --output text | awk '{print $1}')
-
-          echo "Instance ID: $INSTANCE_ID"
-          PROFILE_ARN=$(aws ec2 describe-instances \
-            --instance-ids $INSTANCE_ID \
-            --query "Reservations[].Instances[].IamInstanceProfile.Arn" \
-            --output text)
-          echo "Profile ARN: $PROFILE_ARN"
-          PROFILE_NAME=$(echo $PROFILE_ARN | awk -F'/' '{print $2}')
-
-          echo "Instance Profile Name: $PROFILE_NAME"
-
-  
-          ROLE_NAME=$(aws iam get-instance-profile \
-            --instance-profile-name $PROFILE_NAME \
-            --query "InstanceProfile.Roles[0].RoleName" \
-            --output text)
-          echo "ROLE_NAME=$ROLE_NAME" >> $GITHUB_ENV
-          echo "Detected Role Name: $ROLE_NAME"
-      - name: Attach EBS CSI Policy To Node Role
+          curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
+          POLICY_NAME="AmazonEKS_EBS_CSI_Policy"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          POLICY_ARN="arn:aws:iam::$ACCOUNT_ID:policy/$POLICY_NAME"
+          if aws iam get-policy --policy-arn $POLICY_ARN >/dev/null 2>&1; then
+            echo "policy exist"
+          else
+            echo "policy not exist , kindly create"
+            aws iam create-policy \
+              --policy-name $POLICY_NAME \
+              --policy-document file://example-iam-policy.json
+          fi
+      - name: attach policy
         run: |
-          POLICY_ARN=$(aws iam list-policies \
-            --scope Local \
-            --query "Policies[?PolicyName=='AmazonEKS_EBS_CSI_Policy'].Arn" \
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          POLICY_ARN="arn:aws:iam::$ACCOUNT_ID:policy/AmazonEKS_EBS_CSI_Policy"
+          ROLE_NAME=$(aws iam list-roles \
+            --query "Roles[?contains(RoleName, 'NodeInstanceRole')].RoleName" \
             --output text)
-
+          echo $ROLE_NAME
           aws iam attach-role-policy \
             --role-name $ROLE_NAME \
             --policy-arn $POLICY_ARN
-
-
-      - name: Install AWS EBS CSI Driver
+      - name: download aws-ebs-csi-driver 
         run: |
-          eksctl create addon \
-            --name aws-ebs-csi-driver \
-            --cluster demo-cluster \
-            --region us-east-1 \
-            --force
+          eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
+      - name: get the addon
+        run: eksctl get addon --cluster demo-cluster --region us-east-1
+      - name: get the pods
+        run: kubectl get pods -n kube-system | grep ebs
+      
 
-      - name: Wait for EBS CSI Pods to be Ready
+      
+      - name: waiting pod aws-ebs-csi-driver 
         run: |
-          kubectl wait --for=condition=Running pod \
-            -l app=ebs-csi-controller \
-            -n kube-system \
-            --timeout=180s
+          kubectl wait --for=condition=Ready pod \
+            -l app.kubernetes.io/name=aws-ebs-csi-driver \
+            -n kube-system --timeout=300s
+
+
+
+        
+
 
       - name: Verify EBS CSI Status
         run: kubectl get pods -n kube-system | grep ebs
@@ -136,11 +130,17 @@ jobs:
       - name: create data on Data_Base
         run: kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
       - name: create Svc account on database 
-        run: kubectl exec -it mysql-0 -- mysql -u authuser -pmy-secret-pw
-      - name: Check DB with SVC account 
         run: |
+          kubectl exec mysql-0 -- sh -c "
+          mysql -u authuser -pmy-secret-pw <<EOF
           SHOW DATABASES;
           USE weatherapp;
+          SHOW TABLES;
+          EOF
+          "
+
+      
+          
       - name: connect on db
         run: |
          kubectl apply -f ./kubernetes/authentication/service.yaml 
@@ -151,7 +151,7 @@ jobs:
           kubectl get secret weather >/dev/null 2>&1 || { \
            cd kubernetes/weather; \
               kubectl create secret generic weather \
-                --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6; \ 
+                --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6;\ 
                 }
       - name: deploy weather service
         run: |
@@ -162,7 +162,7 @@ jobs:
          kubectl get secret weatherapp-ui-tls >/dev/null 2>&1 || { \
           cd kubernetes/ui; \
              openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=weatherapp.local/O=weatherapp"
-             kubectl create secret tls weatherapp-ui-tls --cert=tls.crt --key=tls.key; \ 
+             kubectl create secret tls weatherapp-ui-tls --cert=tls.crt --key=tls.key;\ 
              }
       - name: deploy UI service
         run: |
@@ -173,11 +173,20 @@ jobs:
           kubectl apply -f ./kubernetes/ui/ingress.yaml
       - name: Run EKS Cluster
         run:  |
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin/
+          kubectl get pods -n ingress-nginx
+          pwd
+          eksctl version
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml 
+          kubectl get ing
+      
       - name: waiting ingress controller created
         run: |
-          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=ingress-nginx --timeout=180s
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=ingress-nginx -n ingress-nginx --timeout=180s
           kubectl get ing
+          kubectl get pods -n ingress-nginx
+
 
 
       - name: Get Load Balancer DNS name
