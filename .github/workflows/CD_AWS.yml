@@ -19,7 +19,6 @@ jobs:
           aws-region: us-east-1
       - name: install EKS
         run: |
-        
           curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
           sudo mv /tmp/eksctl /usr/local/bin/
           eksctl version
@@ -174,6 +173,9 @@ jobs:
           kubectl apply -f ./kubernetes/ui/ingress.yaml
       - name: Run EKS Cluster
         run:  |
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin/
+          kubectl get pods -n ingress-nginx
           pwd
           eksctl version
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml 
