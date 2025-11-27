@@ -49,7 +49,8 @@ jobs:
             --policy-document file://example-iam-policy.json
           aws iam attach-role-policy \
             --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
-            --policy-arn arn:aws:iam::643008340843:policy/AmazonEKS_EBS_CSI_Policy
+            --policy-arn arn:aws:iam::aws:policy/AmazonEKS_EBS_CSI_Policy
+
       - name: download aws-ebs-csi-driver 
         run: |
           eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
