@@ -131,11 +131,12 @@ jobs:
       - name: create data on Data_Base
         run: kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
       - name: create Svc account on database 
-        run: kubectl exec -it mysql-0 -- mysql -u authuser -pmy-secret-pw
-      - name: Check DB with SVC account 
         run: |
-          SHOW DATABASES;
-          USE weatherapp;
+          kubectl exec mysql-0 -- sh -c 'mysql -u authuser -pmy-secret-pw'
+              SHOW DATABASES;
+              USE weatherapp;
+      
+          
       - name: connect on db
         run: |
          kubectl apply -f ./kubernetes/authentication/service.yaml 
