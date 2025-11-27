@@ -80,7 +80,6 @@ jobs:
                }
       - name: deploy db
         run: |
-          
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/ebs.yaml
