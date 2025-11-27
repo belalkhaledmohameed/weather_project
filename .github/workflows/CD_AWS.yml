@@ -44,9 +44,19 @@ jobs:
       - name: download policy 
         run: |
           curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
-          aws iam create-policy \
-            --policy-name AmazonEKS_EBS_CSI_Policy \
-            --policy-document file://example-iam-policy.json
+          POLICY_NAME="AmazonEKS_EBS_CSI_Policy"
+
+          if aws iam get-policy --policy-arn arn:aws:iam::aws:policy/$POLICY_NAME >/dev/null 2>&1; then
+            echo "policy exist"
+          else
+            echo "policy not exist , kindly create"
+
+            aws iam create-policy \
+              --policy-name $POLICY_NAME \
+              --policy-document file://example-iam-policy.json
+          fi
+      - name: attach policy
+        run: |
           aws iam attach-role-policy \
             --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
             --policy-arn arn:aws:iam::aws:policy/AmazonEKS_EBS_CSI_Policy
