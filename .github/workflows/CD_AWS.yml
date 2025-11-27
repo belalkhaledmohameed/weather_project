@@ -62,6 +62,8 @@ jobs:
 
       - name: request aws-ebs-csi-driver
         run: eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
+      - name: waiting ebs to be ready
+        run: kubectl wait --for=condition=Ready pod -l app=ebs-csi-node -n kube-system --timeout=5m
       - name:  show pods of ebs-csi-drive 
         run: kubectl get pods -n kube-system | grep ebs
       
@@ -80,7 +82,8 @@ jobs:
                }
       - name: deploy db
         run: |
-          
+          kubectl delete pod -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+          kubectl delete pvc mysql-persistent-storage-mysql-0
           kubectl apply -f ./kubernetes/authentication/mysql/ebs.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
