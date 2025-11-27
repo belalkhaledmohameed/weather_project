@@ -41,24 +41,30 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
-      - name: Get Nodegroup IAM Role Automatically
+      - name: Get Node IAM Role Correctly
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
             --filters "Name=tag:eks:cluster-name,Values=demo-cluster" \
             --query "Reservations[].Instances[].InstanceId" \
             --output text | head -n1)
 
-          ROLE_NAME=$(aws ec2 describe-instances \
+          echo "Instance ID: $INSTANCE_ID"
+
+          PROFILE_NAME=$(aws ec2 describe-instances \
             --instance-ids $INSTANCE_ID \
             --query "Reservations[].Instances[].IamInstanceProfile.Arn" \
             --output text | awk -F'/' '{print $2}')
 
+          echo "Instance Profile: $PROFILE_NAME"
+
+          ROLE_NAME=$(aws iam get-instance-profile \
+            --instance-profile-name $PROFILE_NAME \
+            --query "InstanceProfile.Roles[0].RoleName" \
+            --output text)
+
           echo "ROLE_NAME=$ROLE_NAME" >> $GITHUB_ENV
-
-          echo "Detected Node Role: $ROLE_NAME"
-
-          
-      - name: Attach EBS CSI Policy To Detected Node Role
+          echo "Detected Role: $ROLE_NAME"
+      - name: Attach EBS CSI Policy To Node Role
         run: |
           POLICY_ARN=$(aws iam list-policies \
             --scope Local \
