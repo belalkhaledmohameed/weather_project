@@ -41,56 +41,11 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
-      - name: Get Node IAM Role Correctly (FIXED)
+      - name: get the policy found
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:eks:cluster-name,Values=demo-cluster" \
-            --query "Reservations[].Instances[].InstanceId" \
-            --output text | awk '{print $1}')
+          aws iam get-policy \
+          --policy-arn arn:aws:iam::aws:policy/AmazonEKS_EBS_CSI_Policy
 
-          echo "Instance ID: $INSTANCE_ID"
-          PROFILE_ARN=$(aws ec2 describe-instances \
-            --instance-ids $INSTANCE_ID \
-            --query "Reservations[].Instances[].IamInstanceProfile.Arn" \
-            --output text)
-          echo "Profile ARN: $PROFILE_ARN"
-          PROFILE_NAME=$(echo $PROFILE_ARN | awk -F'/' '{print $2}')
-
-          echo "Instance Profile Name: $PROFILE_NAME"
-
-  
-          ROLE_NAME=$(aws iam get-instance-profile \
-            --instance-profile-name $PROFILE_NAME \
-            --query "InstanceProfile.Roles[0].RoleName" \
-            --output text)
-          echo "ROLE_NAME=$ROLE_NAME" >> $GITHUB_ENV
-          echo "Detected Role Name: $ROLE_NAME"
-      - name: Attach EBS CSI Policy To Node Role
-        run: |
-          POLICY_ARN=$(aws iam list-policies \
-            --scope Local \
-            --query "Policies[?PolicyName=='AmazonEKS_EBS_CSI_Policy'].Arn" \
-            --output text)
-
-          aws iam attach-role-policy \
-            --role-name $ROLE_NAME \
-            --policy-arn $POLICY_ARN
-
-
-      - name: Install AWS EBS CSI Driver
-        run: |
-          eksctl create addon \
-            --name aws-ebs-csi-driver \
-            --cluster demo-cluster \
-            --region us-east-1 \
-            --force
-
-      - name: Wait for EBS CSI Pods to be Ready
-        run: |
-          kubectl wait --for=condition=Running pod \
-            -l app=ebs-csi-controller \
-            -n kube-system \
-            --timeout=180s
 
       - name: Verify EBS CSI Status
         run: kubectl get pods -n kube-system | grep ebs
