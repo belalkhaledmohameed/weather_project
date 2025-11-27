@@ -65,7 +65,9 @@ jobs:
       - name: waiting ebs to be ready
         run: kubectl wait --for=condition=Ready pod -l app=ebs-csi-node -n kube-system --timeout=5m
       - name:  show pods of ebs-csi-drive 
-        run: kubectl get pods -n kube-system | grep ebs
+        run: |
+           kubectl delete pod -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+           kubectl get pods -n kube-system | grep ebs
       
          
 
