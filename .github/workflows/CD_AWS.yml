@@ -152,7 +152,7 @@ jobs:
           kubectl get secret weather >/dev/null 2>&1 || { \
            cd kubernetes/weather; \
               kubectl create secret generic weather \
-                --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6; \ 
+                --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6;\ 
                 }
       - name: deploy weather service
         run: |
