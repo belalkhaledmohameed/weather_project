@@ -41,46 +41,81 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
-      
-      - name: download policy for ebs-csi-driver and attach to IAM 
+      - name: Delete old AmazonEKS_EBS_CSI_Policy if exists
         run: |
-          
-          curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
           POLICY_NAME="AmazonEKS_EBS_CSI_Policy"
-          EXISTS=$(aws iam list-policies --query "Policies[?PolicyName=='$POLICY_NAME'] | length(@)" --output text)
 
-          if [ "$EXISTS" -eq "0" ]; then
-            echo "Policy not found. Creating..."
-            aws iam create-policy \
-              --policy-name "$POLICY_NAME" \
-              --policy-document file://example-iam-policy.json
-            eksctl utils associate-iam-oidc-provider \
-              --region us-east-1 \
-              --cluster demo-cluster \
-              --approve
-            eksctl create iamserviceaccount \
-              --name ebs-csi-controller-sa \
-              --namespace kube-system \
-              --cluster demo-cluster \
-              --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
-              --approve
+          POLICY_ARN=$(aws iam list-policies \
+            --scope Local \
+            --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" \
+            --output text)
 
+          if [ -n "$POLICY_ARN" ]; then
+            echo "Policy found: $POLICY_ARN"
+            aws iam detach-role-policy \
+              --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
+              --policy-arn $POLICY_ARN || true
+            VERSION_ID=$(aws iam list-policy-versions \
+              --policy-arn $POLICY_ARN \
+              --query "Versions[?IsDefaultVersion==\`true\`].VersionId" \
+              --output text)
 
+            aws iam delete-policy-version \
+              --policy-arn $POLICY_ARN \
+              --version-id $VERSION_ID || true
+
+            aws iam delete-policy --policy-arn $POLICY_ARN
+
+            echo "Old policy deleted successfully ✅"
           else
-            echo "Policy already exists. Skipping creation."
+            echo "Policy not found. Skipping delete ✅"
           fi
+      - name: Create and Attach New AmazonEKS_EBS_CSI_Policy
+        run: |
+          curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
 
-      - name: request aws-ebs-csi-driver
-        run: eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
-      - name: waiting ebs to be ready
-        run: kubectl wait --for=condition=Ready pod -l app=ebs-csi-node -n kube-system --timeout=5m
-      - name:  show pods of ebs-csi-drive 
+          aws iam create-policy \
+            --policy-name AmazonEKS_EBS_CSI_Policy \
+            --policy-document file://example-iam-policy.json
+
+          POLICY_ARN=$(aws iam list-policies \
+            --scope Local \
+            --query "Policies[?PolicyName=='AmazonEKS_EBS_CSI_Policy'].Arn" \
+            --output text)
+
+          aws iam attach-role-policy \
+            --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
+            --policy-arn $POLICY_ARN
+
+      
+      
+
+
+          
+
+      - name: Install AWS EBS CSI Driver
+        run: |
+          eksctl create addon \
+            --name aws-ebs-csi-driver \
+            --cluster demo-cluster \
+            --region us-east-1 \
+            --force
+
+      - name: Wait for EBS CSI Pods to be Ready
+        run: |
+          kubectl wait --for=condition=Ready pod \
+            -l app=ebs-csi-controller \
+            -n kube-system \
+            --timeout=180s
+
+      - name: Verify EBS CSI Status
         run: kubectl get pods -n kube-system | grep ebs
-      - name: restart addons 
-        run: kubectl rollout restart deployment ebs-csi-controller -n kube-system
+
+      # - name: restart addons 
+      #   run: kubectl rollout restart deployment ebs-csi-controller -n kube-system
       - name: get the ebsi pods
         run: |
-           kubectl delete pod -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+           
            kubectl get pods -n kube-system | grep ebs
       
          
