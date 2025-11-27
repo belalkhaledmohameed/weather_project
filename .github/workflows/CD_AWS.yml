@@ -44,7 +44,7 @@ jobs:
       
       - name: download policy for ebs-csi-driver and attach to IAM 
         run: |
-          aws iam delete-policy --policy-arn arn:aws:iam::643008340843:policy/AmazonEKS_EBS_CSI_Policy
+          
           curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
           POLICY_NAME="AmazonEKS_EBS_CSI_Policy"
           EXISTS=$(aws iam list-policies --query "Policies[?PolicyName=='$POLICY_NAME'] | length(@)" --output text)
