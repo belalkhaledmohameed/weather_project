@@ -80,9 +80,11 @@ jobs:
                }
       - name: deploy db
         run: |
+          kubectl delete pvc mysql-persistent-storage-mysql-0
+          kubectl apply -f ./kubernetes/authentication/mysql/ebs.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
-          kubectl apply -f ./kubernetes/authentication/mysql/ebs.yaml
+          
       - name: waiting for database pod ready 
         run: kubectl wait --for=condition=ready pod -l app=mysql --timeout=90s
 
