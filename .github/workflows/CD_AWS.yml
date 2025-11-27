@@ -87,7 +87,7 @@ jobs:
 
       - name: Wait for EBS CSI Pods to be Ready
         run: |
-          kubectl wait --for=condition=Ready pod \
+          kubectl wait --for=condition=Running pod \
             -l app=ebs-csi-controller \
             -n kube-system \
             --timeout=180s
