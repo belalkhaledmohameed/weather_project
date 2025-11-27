@@ -47,7 +47,7 @@ jobs:
           POLICY_NAME="AmazonEKS_EBS_CSI_Policy"
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           POLICY_ARN="arn:aws:iam::$ACCOUNT_ID:policy/$POLICY_NAME"
-          if aaws iam get-policy --policy-arn $POLICY_ARN >/dev/null 2>&1; then
+          if aws iam get-policy --policy-arn $POLICY_ARN >/dev/null 2>&1; then
             echo "policy exist"
           else
             echo "policy not exist , kindly create"
