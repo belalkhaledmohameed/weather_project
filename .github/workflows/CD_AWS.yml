@@ -57,10 +57,15 @@ jobs:
           fi
       - name: attach policy
         run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          POLICY_ARN="arn:aws:iam::$ACCOUNT_ID:policy/AmazonEKS_EBS_CSI_Policy"
+          ROLE_NAME=$(aws iam list-roles \
+            --query "Roles[?contains(RoleName, 'NodeInstanceRole')].RoleName" \
+            --output text)
+          echo $ROLE_NAME
           aws iam attach-role-policy \
-            --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
-            --policy-arn arn:aws:iam::aws:policy/AmazonEKS_EBS_CSI_Policy
-
+            --role-name $ROLE_NAME \
+            --policy-arn $POLICY_ARN
       - name: download aws-ebs-csi-driver 
         run: |
           eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
