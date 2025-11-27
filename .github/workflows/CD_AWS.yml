@@ -132,9 +132,14 @@ jobs:
         run: kubectl apply -f ./kubernetes/authentication/mysql/init-job.yaml
       - name: create Svc account on database 
         run: |
-          kubectl exec mysql-0 -- sh -c 'mysql -u authuser -pmy-secret-pw'
-              SHOW DATABASES;
-              USE weatherapp;
+          kubectl exec mysql-0 -- sh -c "
+          mysql -u authuser -pmy-secret-pw <<EOF
+          SHOW DATABASES;
+          USE weatherapp;
+          SHOW TABLES;
+          EOF
+          "
+
       
           
       - name: connect on db
