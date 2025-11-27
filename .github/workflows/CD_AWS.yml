@@ -41,57 +41,34 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
-      - name: Delete old AmazonEKS_EBS_CSI_Policy if exists
+      - name: Get Nodegroup IAM Role Automatically
         run: |
-          POLICY_NAME="AmazonEKS_EBS_CSI_Policy"
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:eks:cluster-name,Values=demo-cluster" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text | head -n1)
 
-          POLICY_ARN=$(aws iam list-policies \
-            --scope Local \
-            --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" \
-            --output text)
+          ROLE_NAME=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --query "Reservations[].Instances[].IamInstanceProfile.Arn" \
+            --output text | awk -F'/' '{print $2}')
 
-          if [ -n "$POLICY_ARN" ]; then
-            echo "Policy found: $POLICY_ARN"
-            aws iam detach-role-policy \
-              --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
-              --policy-arn $POLICY_ARN || true
-            VERSION_ID=$(aws iam list-policy-versions \
-              --policy-arn $POLICY_ARN \
-              --query "Versions[?IsDefaultVersion==\`true\`].VersionId" \
-              --output text)
+          echo "ROLE_NAME=$ROLE_NAME" >> $GITHUB_ENV
 
-            aws iam delete-policy-version \
-              --policy-arn $POLICY_ARN \
-              --version-id $VERSION_ID || true
+          echo "Detected Node Role: $ROLE_NAME"
 
-            aws iam delete-policy --policy-arn $POLICY_ARN
-
-            echo "Old policy deleted successfully ✅"
-          else
-            echo "Policy not found. Skipping delete ✅"
-          fi
-      - name: Create and Attach New AmazonEKS_EBS_CSI_Policy
+          
+      - name: Attach EBS CSI Policy To Detected Node Role
         run: |
-          curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
-
-          aws iam create-policy \
-            --policy-name AmazonEKS_EBS_CSI_Policy \
-            --policy-document file://example-iam-policy.json
-
           POLICY_ARN=$(aws iam list-policies \
             --scope Local \
             --query "Policies[?PolicyName=='AmazonEKS_EBS_CSI_Policy'].Arn" \
             --output text)
 
           aws iam attach-role-policy \
-            --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
+            --role-name $ROLE_NAME \
             --policy-arn $POLICY_ARN
 
-      
-      
-
-
-          
 
       - name: Install AWS EBS CSI Driver
         run: |
