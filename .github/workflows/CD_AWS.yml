@@ -80,10 +80,12 @@ jobs:
                }
       - name: deploy db
         run: |
+          kubectl delete pod -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
           kubectl delete pvc mysql-persistent-storage-mysql-0
           kubectl apply -f ./kubernetes/authentication/mysql/ebs.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/headless-service.yaml
           kubectl apply -f ./kubernetes/authentication/mysql/statefulset.yaml
+          Run kubectl get pods -n kube-system | grep ebs
           
       - name: waiting for database pod ready 
         run: kubectl wait --for=condition=ready pod -l app=mysql --timeout=90s
