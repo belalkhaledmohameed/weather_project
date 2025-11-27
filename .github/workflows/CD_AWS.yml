@@ -41,29 +41,30 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
-      - name: Get Node IAM Role Correctly
+      - name: Get Node IAM Role Correctly (FIXED)
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
             --filters "Name=tag:eks:cluster-name,Values=demo-cluster" \
             --query "Reservations[].Instances[].InstanceId" \
-            --output text | head -n1)
+            --output text | awk '{print $1}')
 
           echo "Instance ID: $INSTANCE_ID"
-
-          PROFILE_NAME=$(aws ec2 describe-instances \
+          PROFILE_ARN=$(aws ec2 describe-instances \
             --instance-ids $INSTANCE_ID \
             --query "Reservations[].Instances[].IamInstanceProfile.Arn" \
-            --output text | awk -F'/' '{print $2}')
+            --output text)
+          echo "Profile ARN: $PROFILE_ARN"
+          PROFILE_NAME=$(echo $PROFILE_ARN | awk -F'/' '{print $2}')
 
-          echo "Instance Profile: $PROFILE_NAME"
+          echo "Instance Profile Name: $PROFILE_NAME"
 
+  
           ROLE_NAME=$(aws iam get-instance-profile \
             --instance-profile-name $PROFILE_NAME \
             --query "InstanceProfile.Roles[0].RoleName" \
             --output text)
-
           echo "ROLE_NAME=$ROLE_NAME" >> $GITHUB_ENV
-          echo "Detected Role: $ROLE_NAME"
+          echo "Detected Role Name: $ROLE_NAME"
       - name: Attach EBS CSI Policy To Node Role
         run: |
           POLICY_ARN=$(aws iam list-policies \
