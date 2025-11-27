@@ -45,12 +45,21 @@ jobs:
       - name: download policy for ebs-csi-driver and attach to IAM 
         run: |
           curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
-          aws iam create-policy \
-            --policy-name AmazonEKS_EBS_CSI_Policy \
-            --policy-document file://example-iam-policy.json
-          aws iam attach-role-policy \
-            --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
-            --policy-arn arn:aws:iam::643008340843:policy/AmazonEKS_EBS_CSI_Policy
+          POLICY_NAME="AmazonEKS_EBS_CSI_Policy"
+          EXISTS=$(aws iam list-policies --query "Policies[?PolicyName=='$POLICY_NAME'] | length(@)" --output text)
+
+          if [ "$EXISTS" -eq "0" ]; then
+            echo "Policy not found. Creating..."
+            aws iam create-policy \
+              --policy-name "$POLICY_NAME" \
+              --policy-document file://AmazonEKS_EBS_CSI_Policy.json
+            aws iam attach-role-policy \
+              --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
+              --policy-arn arn:aws:iam::643008340843:policy/AmazonEKS_EBS_CSI_Policy
+          else
+            echo "Policy already exists. Skipping creation."
+          fi
+
       - name: request aws-ebs-csi-driver
         run: eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
       - name:  show pods of ebs-csi-drive 
