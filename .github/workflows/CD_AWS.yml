@@ -41,10 +41,23 @@ jobs:
       
       - name: list cluster
         run: aws eks list-clusters
-      - name: get the policy found
+      - name: download policy 
         run: |
-          aws iam get-policy \
-          --policy-arn arn:aws:iam::aws:policy/AmazonEKS_EBS_CSI_Policy
+          curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-ebs-csi-driver/master/docs/example-iam-policy.json
+          aws iam create-policy \
+            --policy-name AmazonEKS_EBS_CSI_Policy \
+            --policy-document file://example-iam-policy.json
+          aws iam attach-role-policy \
+            --role-name eksctl-demo-cluster-nodegroup-ng-0-NodeInstanceRole-MQWEbdc7MtcZ \
+            --policy-arn arn:aws:iam::643008340843:policy/AmazonEKS_EBS_CSI_Policy
+      - name: download aws-ebs-csi-driver 
+        run: |
+          eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
+      - name: waiting pod aws-ebs-csi-driver 
+        run: kubectl wait --for=condition=Ready pod -l app=ebs-csi-controller -n kube-system --timeout=300s
+
+
+        
 
 
       - name: Verify EBS CSI Status
