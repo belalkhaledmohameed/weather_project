@@ -70,8 +70,7 @@ jobs:
           eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
       - name: get the addon
         run: eksctl get addon --cluster demo-cluster --region us-east-1
-      - name: get the pods
-        run: kubectl get pods -n kube-system | grep ebs
+      
       
 
       
@@ -151,8 +150,8 @@ jobs:
           kubectl get secret weather >/dev/null 2>&1 || { \
            cd kubernetes/weather; \
               kubectl create secret generic weather \
-                --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6;\ 
-                }
+                --from-literal=apikey=dd14af1bc5msh2f2906c42d09a2fp1632d8jsnef251bbd6cc6;  \ 
+                  }
       - name: deploy weather service
         run: |
           kubectl apply -f ./kubernetes/weather/service.yaml
@@ -162,8 +161,8 @@ jobs:
          kubectl get secret weatherapp-ui-tls >/dev/null 2>&1 || { \
           cd kubernetes/ui; \
              openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=weatherapp.local/O=weatherapp"
-             kubectl create secret tls weatherapp-ui-tls --cert=tls.crt --key=tls.key;\ 
-             }
+             kubectl create secret tls weatherapp-ui-tls --cert=tls.crt --key=tls.key; \ 
+                }
       - name: deploy UI service
         run: |
           
@@ -173,19 +172,42 @@ jobs:
           kubectl apply -f ./kubernetes/ui/ingress.yaml
       - name: Run EKS Cluster
         run:  |
-          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-          sudo mv /tmp/eksctl /usr/local/bin/
-          kubectl get pods -n ingress-nginx
-          pwd
-          eksctl version
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml 
+
+          eksctl utils write-kubeconfig --cluster demo-cluster  --region us-east-1 
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml
           kubectl get ing
+      - name: deacribed ingress controller
+        run: |
+          kubectl describe svc ingress-nginx-controller -n ingress-nginx
+
+          
       
       - name: waiting ingress controller created
         run: |
           kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=ingress-nginx -n ingress-nginx --timeout=180s
           kubectl get ing
           kubectl get pods -n ingress-nginx
+      - name: Wait for LoadBalancer External IP
+        run: |
+          echo "Waiting for LoadBalancer External IP..."
+          for i in {1..60}; do
+              EXTERNAL_IP=$(kubectl get svc ingress-nginx-controller \
+                -n ingress-nginx \
+                -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+              if [ -n "$EXTERNAL_IP" ]; then
+                echo "✅ LoadBalancer is ready: $EXTERNAL_IP"
+                echo "LB_HOSTNAME=$EXTERNAL_IP" >> $GITHUB_ENV
+                exit 0
+              fi
+
+              echo "⏳ Still pending..."
+              sleep 10
+          done
+
+          echo "❌ LoadBalancer not ready after 10 minutes"
+          exit 1
+
 
 
 
