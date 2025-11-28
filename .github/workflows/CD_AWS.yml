@@ -172,9 +172,14 @@ jobs:
           kubectl apply -f ./kubernetes/ui/ingress.yaml
       - name: Run EKS Cluster
         run:  |
+
           eksctl utils write-kubeconfig --cluster demo-cluster  --region us-east-1 
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/aws/deploy.yaml
           kubectl get ing
+      - name: deacribed ingress controller
+        run: |
+          kubectl describe svc ingress-nginx-controller -n ingress-nginx
+
           
       
       - name: waiting ingress controller created
