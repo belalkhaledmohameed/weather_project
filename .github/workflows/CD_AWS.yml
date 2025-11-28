@@ -70,8 +70,7 @@ jobs:
           eksctl create addon --name aws-ebs-csi-driver --cluster demo-cluster --region us-east-1
       - name: get the addon
         run: eksctl get addon --cluster demo-cluster --region us-east-1
-      - name: get the pods
-        run: kubectl get pods -n kube-system | grep ebs
+      
       
 
       
